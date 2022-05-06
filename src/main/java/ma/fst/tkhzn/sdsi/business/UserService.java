@@ -101,13 +101,13 @@ public class UserService {
 	}
 
 	@RequestMapping(path = "/users", method = RequestMethod.GET)
-	public List<Utilisateur> users() {
-		List<Utilisateur> usrs = new ArrayList<>();
+	public List<UserInfo> users() {
+		List<UserInfo> usrs = new ArrayList<>();
 		List<String> login = new ArrayList<>();
-		for(Enseignant u: enseignantRepository.findAll()) usrs.add(new Enseignant(u));
+		for(Enseignant u: enseignantRepository.findAll()) usrs.add(new UserInfo(u));
 		for(Utilisateur u: iUserRepository.findAll()) {
 			if(!u.getRole().equalsIgnoreCase("fournisseur") && !login.contains(u.getLogin())) {
-				usrs.add(new Utilisateur(u));
+				usrs.add(new UserInfo(u));
 			}
 		}
 		return usrs;
@@ -121,26 +121,25 @@ public class UserService {
 			return new CodeStatus(300);
 		}
 		else {
+
 			if(role.equalsIgnoreCase("enseignant")) {
 				Enseignant ens = userReq.getEnseignant();
+				if(exists(ens.getLogin())) return new CodeStatus(201);
 				codePasswordAndActive(ens);
 				System.out.println(ens);
 				iUserRepository.save(ens);
 			}
 			else if(role.equalsIgnoreCase("fournisseur")) {
-				if(iUserRepository.findByLogin(userReq.getFournisseur().getLogin()) == null) {
-					Fournisseur fournisseur = userReq.getFournisseur();
-					System.out.println(fournisseur);
-					codePasswordAndActive(fournisseur);
-					System.out.println(fournisseur);
-					iUserRepository.save(fournisseur);
-				}
-				else {
-					return new CodeStatus(201);
-				}
+				Fournisseur fournisseur = userReq.getFournisseur();
+				if(exists(fournisseur.getLogin())) return new CodeStatus(201);
+				System.out.println(fournisseur);
+				codePasswordAndActive(fournisseur);
+				System.out.println(fournisseur);
+				iUserRepository.save(fournisseur);
 			}
 			else {
 				Utilisateur user = userReq.getUser();
+				if(exists(user.getLogin())) return new CodeStatus(201);
 				codePasswordAndActive(user);
 				System.out.println(user);
 				iUserRepository.save(user);
@@ -148,7 +147,10 @@ public class UserService {
 		}
 		return new CodeStatus(200);
 	}
-
+	private Boolean exists(String login) {
+		if(iUserRepository.findByLogin(login) == null) return false;
+		else return true;
+	}
 	private Utilisateur codePasswordAndActive(Utilisateur user) {
 		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 		user.setPwd(encoder.encode(user.getPwd()));
